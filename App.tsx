@@ -11,6 +11,7 @@ import LoadingSkeleton from './components/LoadingSkeleton';
 import AsciiArtDisplay from './components/AsciiArtDisplay';
 import CulturalConceptsDisplay from './components/CulturalConceptsDisplay';
 import PhonosemanticMiner from './components/PhonosemanticMiner';
+import ScriptWriter from './components/ScriptWriter';
 
 // A curated list of "banger" words and phrases for the random button.
 const PREDEFINED_WORDS = [
@@ -56,7 +57,7 @@ const App: React.FC = () => {
   const [culturalConcepts, setCulturalConcepts] = useState<CulturalConcept[]>([]);
   const [isCulturalLoading, setIsCulturalLoading] = useState<boolean>(false);
   const [culturalError, setCulturalError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'wiki' | 'miner'>('wiki');
+  const [mode, setMode] = useState<'wiki' | 'miner' | 'writer'>('wiki');
 
 
   useEffect(() => {
@@ -183,7 +184,9 @@ const App: React.FC = () => {
     <div>
       <header style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-          INFINITE WIKI
+          {mode === 'wiki' && 'INFINITE WIKI'}
+          {mode === 'miner' && 'PHONOSEMANTIC MINER'}
+          {mode === 'writer' && 'SCRIPT WRITER'}
         </h1>
         {mode === 'wiki' && <AsciiArtDisplay artData={asciiArt} topic={currentTopic} />}
       </header>
@@ -194,6 +197,9 @@ const App: React.FC = () => {
         </button>
         <button onClick={() => setMode('miner')} className={mode === 'miner' ? 'active' : ''}>
           Phonosemantic Miner
+        </button>
+        <button onClick={() => setMode('writer')} className={mode === 'writer' ? 'active' : ''}>
+          Script Writer
         </button>
       </div>
 
@@ -238,9 +244,13 @@ const App: React.FC = () => {
             />
           </div>
         </main>
-      ) : (
+      ) : mode === 'miner' ? (
         <main>
           <PhonosemanticMiner />
+        </main>
+      ) : (
+        <main>
+          <ScriptWriter />
         </main>
       )}
 

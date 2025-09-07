@@ -53,6 +53,15 @@ export interface PhonosemanticResult {
   semantic_cluster: string;
 }
 
+export interface ScriptResult {
+  language: string;
+  word: string;
+  script: string;
+  romanization: string;
+  ipa: string;
+  note: string;
+}
+
 
 /**
  * Streams a definition for a given topic from the Gemini API.
@@ -366,5 +375,72 @@ export async function performPhonosemanticSearch(filters: {
     console.error('Error in phonosemantic search:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     throw new Error(`Could not perform phonosemantic search: ${errorMessage}`);
+  }
+}
+
+
+/**
+ * Gets the writing of a word in a specific language and script.
+ * @param word The word or concept to write.
+ * @param language The target language.
+ * @returns A promise that resolves to the structured script result.
+ */
+export async function getScriptForWord(word: string, language: string): Promise<ScriptResult> {
+  if (!process.env.API_KEY) {
+    throw new Error('API_KEY is not configured.');
+  }
+
+  const prompt = `
+    You are an expert linguist and polyglot. Your task is to provide detailed information on how to write a specific word in a given language.
+
+    Word/Concept: "${word}"
+    Language: "${language}"
+
+    Provide the following information in a JSON object:
+    1.  **script**: The word written in the language's native script.
+    2.  **romanization**: A standard academic romanization of the word.
+    3.  **ipa**: The International Phonetic Alphabet (IPA) transcription.
+    4.  **note**: A brief, one-sentence note about the word's usage, form, or context (e.g., "This is the formal term," or "An informal term of endearment.").
+
+    If the word doesn't exist or is nonsensical in the target language, return null values for the fields.
+    Return only the raw JSON object.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            script: { type: Type.STRING },
+            romanization: { type: Type.STRING },
+            ipa: { type: Type.STRING },
+            note: { type: Type.STRING },
+          },
+          required: ['script', 'romanization', 'ipa', 'note']
+        }
+      }
+    });
+
+    let jsonStr = response.text.trim();
+    const parsed = JSON.parse(jsonStr) as Omit<ScriptResult, 'language' | 'word'>;
+
+    if (!parsed.script) {
+        throw new Error(`Could not find a representation for "${word}" in ${language}.`);
+    }
+
+    return {
+      ...parsed,
+      language: language,
+      word: word,
+    };
+
+  } catch (error) {
+    console.error('Error in getScriptForWord:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    throw new Error(`Could not get script for "${word}" in ${language}: ${errorMessage}`);
   }
 }
